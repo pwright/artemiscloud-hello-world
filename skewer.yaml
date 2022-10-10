@@ -3,6 +3,7 @@ subtitle: A minimal messaging solution deployed in a Kubernetes cluster
 # github_actions_url: https://github.com/pwright/artemiscloud-hello-world/actions/workflows/main.yaml
 overview: |
   This example is a very simple multi-protocol messaging solution.
+  Before starting, make sure you have golang installed.
 sites:
   hello-world:
     kubeconfig: ~/.kube/config-hello-world
@@ -15,6 +16,16 @@ steps:
       hello-world:
         - run: kubectl create namespace hello-world
           output: namespace/hello-world created
+  - title: Deploy operator
+    commands:
+      hello-world:
+        - run: cd subrepos/operator/
+        - run: make deploy
+  - title: Check operator
+    commands:
+      hello-world:
+        - run: sleep 20
+        - run: kubectl get pod -n activemq-artemis-operator
   - title: Cleaning up
     commands:
       hello-world:
