@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/brusdev/activemq-artemis-operator
+	branch = deploy_scripts
+	commit = cbe2e7ecb94559fd064a110ad8c6ef75627564fb
+	parent = 1b6fc2d10c375f7caa60e09a8319607d7a0bc838
+	method = merge
+	cmdver = 0.4.5
