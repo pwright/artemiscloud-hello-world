@@ -2,7 +2,7 @@
 
 echo "Deploying operator to watch single namespace"
 
-KUBE=oc
+KUBE=kubectl
 
 $KUBE create -f ./crds
 $KUBE create -f ./service_account.yaml

@@ -14,13 +14,16 @@ across cloud providers, data centers, and edge sites.
 * [Overview](#overview)
 * [Prerequisites](#prerequisites)
 * [Step 1: Create a namespace](#step-1-create-a-namespace)
-* [Step 2: Cleaning up](#step-2-cleaning-up)
+* [Step 2: Deploy operator](#step-2-deploy-operator)
+* [Step 3: Check operator](#step-3-check-operator)
+* [Step 4: Cleaning up](#step-4-cleaning-up)
 * [Summary](#summary)
 * [About this example](#about-this-example)
 
 ## Overview
 
 This example is a very simple multi-protocol messaging solution.
+Before starting, make sure you have golang installed.
 
 ## Prerequisites
 
@@ -35,20 +38,53 @@ This example is a very simple multi-protocol messaging solution.
 
 ## Step 1: Create a namespace
 
-Use `kubectl create ns` to create a namespace.
+Use `kubectl create namespace` to create a `hello-world` namespace.
 
 _**Console for hello-world:**_
 
 ~~~ shell
 kubectl create namespace hello-world
+kubectl config set-context --current --namespace hello-world
 ~~~
 
-## Step 2: Cleaning up
+_Sample output:_
+
+~~~ console
+$ kubectl create namespace hello-world
+namespace/hello-world created
+~~~
+
+## Step 2: Deploy operator
+
+Deploy the Artemis operator to the current namespace.
 
 _**Console for hello-world:**_
 
 ~~~ shell
-namespace/hello-world created
+cd subrepos/operator/deploy; bash ./install_opr.sh
+~~~
+
+## Step 3: Check operator
+
+_**Console for hello-world:**_
+
+~~~ shell
+kubectl get pods
+~~~
+
+_Sample output:_
+
+~~~ console
+$ kubectl get pods
+activemq-artemis-controller-manager-f8fb97ddd-bjrtv   1/1     Running   0          1m
+~~~
+
+## Step 4: Cleaning up
+
+_**Console for hello-world:**_
+
+~~~ shell
+kubectl delete namespaces hello-world
 ~~~
 
 ## Summary

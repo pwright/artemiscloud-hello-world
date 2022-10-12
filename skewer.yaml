@@ -11,21 +11,39 @@ sites:
 steps:
   - title: Create a namespace
     preamble: |
-      Use `kubectl create ns` to create a namespace.
+      Use `kubectl create namespace` to create a `hello-world` namespace.
     commands:
       hello-world:
         - run: kubectl create namespace hello-world
           output: namespace/hello-world created
+        - run: kubectl config set-context --current --namespace hello-world
   - title: Deploy operator
+    preamble: |
+      Deploy the Artemis operator to the current namespace.
     commands:
       hello-world:
-        - run: cd subrepos/operator/
-        - run: make deploy
+        - run: cd subrepos/operator/deploy; bash ./install_opr.sh
   - title: Check operator
     commands:
       hello-world:
         - run: sleep 20
-        - run: kubectl get pod -n activemq-artemis-operator
+          apply: test
+        - run: kubectl get pods
+          output: activemq-artemis-controller-manager-f8fb97ddd-bjrtv   1/1     Running   0          1m
+  - title: Create a Broker instance
+    commands:
+      hello-world:
+        - run: kubectl create -f subrepos/operator/examples/artemis-basic-deployment.yaml
+          output: activemqartemis.broker.amq.io/ex-aao created
+        - run: sleep 10
+          apply: test
+  - title: Produce and check messages
+    commands:
+      hello-world:
+        - run:  kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis producer --user x --password y --url tcp://ex-aao-ss-0:61616 --message-count=100
+          output: Defaulted container ex-aao-container out of ex-aao-container, ex-aao-container-init (init)
+        - run:  kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis queue stat --user x --password y --url tcp://ex-aao-ss-0:61616
+          output: Defaulted container ex-aao-container out of ex-aao-container, ex-aao-container-init (init)
   - title: Cleaning up
     commands:
       hello-world:
