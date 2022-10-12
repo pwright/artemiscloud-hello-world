@@ -16,7 +16,9 @@ across cloud providers, data centers, and edge sites.
 * [Step 1: Create a namespace](#step-1-create-a-namespace)
 * [Step 2: Deploy operator](#step-2-deploy-operator)
 * [Step 3: Check operator](#step-3-check-operator)
-* [Step 4: Cleaning up](#step-4-cleaning-up)
+* [Step 4: Create a Broker instance](#step-4-create-a-broker-instance)
+* [Step 5: Produce and check messages](#step-5-produce-and-check-messages)
+* [Step 6: Cleaning up](#step-6-cleaning-up)
 * [Summary](#summary)
 * [About this example](#about-this-example)
 
@@ -79,7 +81,41 @@ $ kubectl get pods
 activemq-artemis-controller-manager-f8fb97ddd-bjrtv   1/1     Running   0          1m
 ~~~
 
-## Step 4: Cleaning up
+## Step 4: Create a Broker instance
+
+_**Console for hello-world:**_
+
+~~~ shell
+kubectl create -f subrepos/operator/examples/artemis-basic-deployment.yaml
+~~~
+
+_Sample output:_
+
+~~~ console
+$ kubectl create -f subrepos/operator/examples/artemis-basic-deployment.yaml
+activemqartemis.broker.amq.io/ex-aao created
+~~~
+
+## Step 5: Produce and check messages
+
+_**Console for hello-world:**_
+
+~~~ shell
+kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis producer --user x --password y --url tcp://ex-aao-ss-0:61616 --message-count=100
+kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis queue stat --user x --password y --url tcp://ex-aao-ss-0:61616
+~~~
+
+_Sample output:_
+
+~~~ console
+$ kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis producer --user x --password y --url tcp://ex-aao-ss-0:61616 --message-count=100
+Defaulted container ex-aao-container out of ex-aao-container, ex-aao-container-init (init)
+
+$ kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis queue stat --user x --password y --url tcp://ex-aao-ss-0:61616
+Defaulted container ex-aao-container out of ex-aao-container, ex-aao-container-init (init)
+~~~
+
+## Step 6: Cleaning up
 
 _**Console for hello-world:**_
 
