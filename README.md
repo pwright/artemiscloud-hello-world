@@ -2,12 +2,9 @@
 
 #### A minimal messaging solution deployed in a Kubernetes cluster
 
-This example is part of a [suite of examples][examples] showing the
-different ways you can use [Skupper][website] to connect services
-across cloud providers, data centers, and edge sites.
+This example shows how you can use [Artemis][website] for messaging.
 
-[website]: https://skupper.io/
-[examples]: https://skupper.io/examples/index.html
+[website]: https://artemiscloud.io/
 
 #### Contents
 
