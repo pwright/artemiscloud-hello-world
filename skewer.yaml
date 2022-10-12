@@ -26,7 +26,7 @@ steps:
   - title: Check operator
     commands:
       hello-world:
-        - run: sleep 20
+        - run: sleep 40
           apply: test
         - run: kubectl get pods
           output: activemq-artemis-controller-manager-f8fb97ddd-bjrtv   1/1     Running   0          1m
@@ -35,7 +35,7 @@ steps:
       hello-world:
         - run: kubectl create -f subrepos/operator/examples/artemis-basic-deployment.yaml
           output: activemqartemis.broker.amq.io/ex-aao created
-        - run: sleep 10
+        - run: sleep 50
           apply: test
   - title: Produce and check messages
     commands:
