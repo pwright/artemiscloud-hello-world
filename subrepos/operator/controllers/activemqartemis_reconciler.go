@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	goerrors "errors"
 	"fmt"
 	"hash/adler32"
 	osruntime "runtime"
@@ -25,6 +26,7 @@ import (
 	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/channels"
 	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/cr2jinja2"
 	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/namer"
+	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/selectors"
 	"github.com/artemiscloud/activemq-artemis-operator/version"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -110,7 +112,11 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) Process(customResource *brokerv
 	// what follows should transform the resources using the crd
 	// if the transformation results in some change, process resources will respect that
 	// comparisons should not be necessary, leave that to process resources
-	currentStatefulSet := reconciler.ProcessStatefulSet(customResource, namer, client, log)
+	currentStatefulSet, err := reconciler.ProcessStatefulSet(customResource, namer, client, log)
+	if err != nil {
+		log.Error(err, "Error processing stafulset")
+		return false
+	}
 
 	reconciler.ProcessDeploymentPlan(customResource, namer, client, scheme, currentStatefulSet)
 
@@ -168,13 +174,16 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) cloneOfDeployed(kind reflect.Ty
 	return nil
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessStatefulSet(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers, client rtclient.Client, log logr.Logger) *appsv1.StatefulSet {
+func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessStatefulSet(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers, client rtclient.Client, log logr.Logger) (*appsv1.StatefulSet, error) {
+
+	reqLogger := ctrl.Log.WithName(customResource.Name)
 
 	ssNamespacedName := types.NamespacedName{
 		Namespace: customResource.Namespace,
 		Name:      namer.SsNameBuilder.Name(),
 	}
 
+	var err error
 	var currentStatefulSet *appsv1.StatefulSet
 	obj := reconciler.cloneOfDeployed(reflect.TypeOf(appsv1.StatefulSet{}), ssNamespacedName.Name)
 	if obj != nil {
@@ -182,7 +191,11 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessStatefulSet(customResour
 	}
 
 	log.Info("Reconciling desired statefulset", "name", ssNamespacedName, "current", currentStatefulSet)
-	currentStatefulSet = reconciler.NewStatefulSetForCR(customResource, namer, currentStatefulSet)
+	currentStatefulSet, err = reconciler.NewStatefulSetForCR(customResource, namer, currentStatefulSet)
+	if err != nil {
+		reqLogger.Error(err, "Error creating new stafulset")
+		return nil, err
+	}
 
 	labels := namer.LabelBuilder.Labels()
 	headlessServiceDefinition := svc.NewHeadlessServiceForCR2(client, namer.SvcHeadlessNameBuilder.Name(), ssNamespacedName.Namespace, serviceports.GetDefaultPorts(), labels)
@@ -192,7 +205,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessStatefulSet(customResour
 	}
 	reconciler.trackDesired(headlessServiceDefinition)
 
-	return currentStatefulSet
+	return currentStatefulSet, nil
 }
 
 func isClustered(customResource *brokerv1beta1.ActiveMQArtemis) bool {
@@ -1369,12 +1382,16 @@ func MakeVolumes(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers) []
 	}
 
 	if customResource.Spec.Console.SSLEnabled {
-		secretName := namer.SecretsConsoleNameBuilder.Name()
-		if "" != customResource.Spec.Console.SSLSecret {
-			secretName = customResource.Spec.Console.SSLSecret
+		isOpenshift, _ := environments.DetectOpenshift()
+		if !customResource.Spec.Console.Expose || isOpenshift {
+			clog.V(1).Info("Make volumes for ssl console exposure on k8s")
+			secretName := namer.SecretsConsoleNameBuilder.Name()
+			if "" != customResource.Spec.Console.SSLSecret {
+				secretName = customResource.Spec.Console.SSLSecret
+			}
+			volume := volumes.MakeVolume(secretName)
+			volumeDefinitions = append(volumeDefinitions, volume)
 		}
-		volume := volumes.MakeVolume(secretName)
-		volumeDefinitions = append(volumeDefinitions, volume)
 	}
 
 	return volumeDefinitions
@@ -1415,12 +1432,16 @@ func MakeVolumeMounts(customResource *brokerv1beta1.ActiveMQArtemis, namer Namer
 	}
 
 	if customResource.Spec.Console.SSLEnabled {
-		volumeMountName := namer.SecretsConsoleNameBuilder.Name() + "-volume"
-		if "" != customResource.Spec.Console.SSLSecret {
-			volumeMountName = customResource.Spec.Console.SSLSecret + "-volume"
+		isOpenshift, _ := environments.DetectOpenshift()
+		if !customResource.Spec.Console.Expose || isOpenshift {
+			clog.V(1).Info("Make volume mounts for ssl console exposure on k8s")
+			volumeMountName := namer.SecretsConsoleNameBuilder.Name() + "-volume"
+			if "" != customResource.Spec.Console.SSLSecret {
+				volumeMountName = customResource.Spec.Console.SSLSecret + "-volume"
+			}
+			volumeMount := volumes.MakeVolumeMount(volumeMountName)
+			volumeMounts = append(volumeMounts, volumeMount)
 		}
-		volumeMount := volumes.MakeVolumeMount(volumeMountName)
-		volumeMounts = append(volumeMounts, volumeMount)
 	}
 
 	return volumeMounts
@@ -1442,7 +1463,7 @@ func MakeContainerPorts(cr *brokerv1beta1.ActiveMQArtemis) []corev1.ContainerPor
 	return containerPorts
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers, current *corev1.PodTemplateSpec) *corev1.PodTemplateSpec {
+func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers, current *corev1.PodTemplateSpec) (*corev1.PodTemplateSpec, error) {
 
 	reqLogger := ctrl.Log.WithName(customResource.Name)
 
@@ -1461,8 +1482,12 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customR
 	}
 	if customResource.Spec.DeploymentPlan.Labels != nil {
 		for key, value := range customResource.Spec.DeploymentPlan.Labels {
-			labels[key] = value
 			reqLogger.V(1).Info("Adding CR Label", "key", key, "value", value)
+			if key == selectors.LabelAppKey || key == selectors.LabelResourceKey {
+				return nil, goerrors.New("Label key not allowed: " + key)
+			} else {
+				labels[key] = value
+			}
 		}
 	}
 
@@ -1739,7 +1764,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) NewPodTemplateSpecForCR(customR
 
 	pts.Spec = *podSpec
 
-	return pts
+	return pts, nil
 }
 
 func configureLivenessProbe(container *corev1.Container, probeFromCR *corev1.Probe) *corev1.Probe {
@@ -2039,12 +2064,22 @@ func determineCompactVersionToUse(customResource *brokerv1beta1.ActiveMQArtemis)
 		clog.V(1).Info("DetermineImageToUse specifiedVersion was " + specifiedVersion)
 
 		// There is a version specified by the user...
-		// Are upgrades enabled?
-		if false == customResource.Spec.Upgrades.Enabled {
-			clog.V(1).Info("DetermineImageToUse upgrades are disabled")
+		if !customResource.Spec.Upgrades.Enabled {
+			clog.V(1).Info("DetermineImageToUse upgrades are disabled, using version as specified")
+
+			// Upgrades deprecated, we just respect the specified version when (by default) false
+			compactSpecifiedVersion := version.CompactVersionFromVersion[specifiedVersion]
+			if len(compactSpecifiedVersion) == 0 {
+				clog.V(1).Info("DetermineImageToUse failed to find the compact form of", "specified version ", specifiedVersion, "defaulting to", compactVersionToUse)
+				break
+			}
+			compactVersionToUse = compactSpecifiedVersion
+			clog.V(1).Info("DetermineImageToUse found the compact form of ", "specified version ", specifiedVersion, "using version", compactSpecifiedVersion)
 			break
+
+		} else {
+			clog.V(1).Info("DetermineImageToUse upgrades are enabled")
 		}
-		clog.V(1).Info("DetermineImageToUse upgrades are enabled")
 
 		// We have a specified version and upgrades are enabled in general
 		// Is the version specified on "the list"
@@ -2112,7 +2147,9 @@ func createExtraConfigmapsAndSecrets(brokerContainer *corev1.Container, configMa
 	return extraVolumes, extraVolumeMounts
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) NewStatefulSetForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers, currentStateFullSet *appsv1.StatefulSet) *appsv1.StatefulSet {
+func (reconciler *ActiveMQArtemisReconcilerImpl) NewStatefulSetForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers, currentStateFullSet *appsv1.StatefulSet) (*appsv1.StatefulSet, error) {
+
+	reqLogger := ctrl.Log.WithName(customResource.Name)
 
 	namespacedName := types.NamespacedName{
 		Name:      customResource.Name,
@@ -2120,13 +2157,18 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) NewStatefulSetForCR(customResou
 	}
 	currentStateFullSet = ss.MakeStatefulSet2(currentStateFullSet, namer.SsNameBuilder.Name(), namer.SvcHeadlessNameBuilder.Name(), namespacedName, customResource.Annotations, namer.LabelBuilder.Labels(), customResource.Spec.DeploymentPlan.Size)
 
-	podTemplateSpec := *reconciler.NewPodTemplateSpecForCR(customResource, namer, &currentStateFullSet.Spec.Template)
+	podTemplateSpec, err := reconciler.NewPodTemplateSpecForCR(customResource, namer, &currentStateFullSet.Spec.Template)
+	if err != nil {
+		reqLogger.Error(err, "Error creating new pod template")
+		return nil, err
+	}
+
 	if customResource.Spec.DeploymentPlan.PersistenceEnabled {
 		currentStateFullSet.Spec.VolumeClaimTemplates = *NewPersistentVolumeClaimArrayForCR(customResource, namer, 1)
 	}
-	currentStateFullSet.Spec.Template = podTemplateSpec
+	currentStateFullSet.Spec.Template = *podTemplateSpec
 
-	return currentStateFullSet
+	return currentStateFullSet, nil
 }
 
 func NewPersistentVolumeClaimArrayForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer Namers, arrayLength int) *[]corev1.PersistentVolumeClaim {

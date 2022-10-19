@@ -9,7 +9,7 @@ then
   exit 1
 fi
 
-KUBE=oc
+KUBE=kubectl
 
 $KUBE create -f ./crds
 $KUBE create -f ./service_account.yaml

@@ -2,7 +2,7 @@
 
 echo "Undeploy everything..."
 
-KUBE=oc
+KUBE=kubectl
 
 $KUBE delete -f ./crds
 $KUBE delete -f ./service_account.yaml

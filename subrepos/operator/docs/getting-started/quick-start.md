@@ -37,7 +37,13 @@ namespace.
 
 ## Deploying the operator
 
-To deploy the operator in the current namespace simply run
+Create the namespace activemq-artemis-operator and save it for all subsequent kubectl commands
+```shell
+kubectl create namespace activemq-artemis-operator
+kubectl config set-context --current --namespace activemq-artemis-operator
+```
+
+To deploy the operator in the current namespace activemq-artemis-operator simply run
 
 ```shell
 cd deploy

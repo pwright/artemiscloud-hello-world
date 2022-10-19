@@ -1450,7 +1450,8 @@ spec:
                   labels:
                     additionalProperties:
                       type: string
-                    description: custom labels provided in the cr
+                    description: Assign labels to a broker pod, the keys `ActiveMQArtemis`
+                      and `application` are not allowed
                     type: object
                   livenessProbe:
                     description: Probe describes a health check to be performed against
@@ -2142,7 +2143,8 @@ spec:
                   type: object
                 type: array
               upgrades:
-                description: ActiveMQArtemis App product upgrade flags
+                description: ActiveMQArtemis App product upgrade flags, this is deprecated
+                  in v1beta1, specifying the Version is sufficient
                 properties:
                   enabled:
                     description: Set to true to enable automatic micro version product

@@ -4,9 +4,9 @@
 ; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
 ;
 [subrepo]
-	remote = https://github.com/brusdev/activemq-artemis-operator
-	branch = deploy_scripts
-	commit = cbe2e7ecb94559fd064a110ad8c6ef75627564fb
-	parent = 1b6fc2d10c375f7caa60e09a8319607d7a0bc838
+	remote = https://github.com/artemiscloud/activemq-artemis-operator
+	branch = main
+	commit = e4ee7c62f79b32ee3c5d04d0c874134ce1198a95
+	parent = f00b0a09035d60e126e57c7f632ad1b92c8b745d
 	method = merge
 	cmdver = 0.4.5

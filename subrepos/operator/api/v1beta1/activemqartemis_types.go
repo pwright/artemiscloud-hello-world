@@ -224,7 +224,7 @@ type DeploymentPlanType struct {
 	// Whether or not to install the artemis metrics plugin
 	EnableMetricsPlugin *bool               `json:"enableMetricsPlugin,omitempty"`
 	Tolerations         []corev1.Toleration `json:"tolerations,omitempty"`
-	//custom labels provided in the cr
+	// Assign labels to a broker pod, the keys `ActiveMQArtemis` and `application` are not allowed
 	Labels map[string]string `json:"labels,omitempty"`
 	//custom node selector
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
@@ -349,7 +349,7 @@ type ConsoleType struct {
 	UseClientAuth bool `json:"useClientAuth,omitempty"`
 }
 
-// ActiveMQArtemis App product upgrade flags
+// ActiveMQArtemis App product upgrade flags, this is deprecated in v1beta1, specifying the Version is sufficient
 type ActiveMQArtemisUpgrades struct {
 	// Set to true to enable automatic micro version product upgrades, disabled by default.
 	Enabled bool `json:"enabled"`
@@ -380,6 +380,10 @@ type ActiveMQArtemisStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
 //+kubebuilder:resource:path=activemqartemises
+//+operator-sdk:csv:customresourcedefinitions:resources={{"Service", "v1"}}
+//+operator-sdk:csv:customresourcedefinitions:resources={{"Secret", "v1"}}
+//+operator-sdk:csv:customresourcedefinitions:resources={{"ConfigMap", "v1"}}
+//+operator-sdk:csv:customresourcedefinitions:resources={{"StatefulSet", "apps/v1"}}
 
 // ActiveMQArtemis is the Schema for the activemqartemises API
 type ActiveMQArtemis struct {
