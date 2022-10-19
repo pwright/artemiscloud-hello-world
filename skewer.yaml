@@ -44,7 +44,7 @@ steps:
           output: Defaulted container ex-aao-container out of ex-aao-container, ex-aao-container-init (init)
         - run:  kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis queue stat --user x --password y --url tcp://ex-aao-ss-0:61616
           output: Defaulted container ex-aao-container out of ex-aao-container, ex-aao-container-init (init)
-  - title: Cleaning up
+  - title: Tidy up
     commands:
       hello-world:
         - run: kubectl delete namespaces hello-world

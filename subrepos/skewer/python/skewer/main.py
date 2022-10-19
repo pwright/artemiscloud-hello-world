@@ -62,7 +62,7 @@ def check_environment():
     check_program("base64")
     check_program("curl")
     check_program("kubectl")
-    check_program("skupper")
+    #check_program("skupper")
 
 # Eventually Kubernetes will make this nicer:
 # https://github.com/kubernetes/kubernetes/pull/87399
