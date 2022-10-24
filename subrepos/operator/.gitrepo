@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/artemiscloud/activemq-artemis-operator
 	branch = main
-	commit = e4ee7c62f79b32ee3c5d04d0c874134ce1198a95
+	commit = dfd62b04995d50413dfde71f0af454f0a8c269fb
 	parent = f00b0a09035d60e126e57c7f632ad1b92c8b745d
 	method = merge
 	cmdver = 0.4.5
