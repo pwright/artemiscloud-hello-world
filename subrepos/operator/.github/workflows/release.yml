@@ -1,0 +1,73 @@
+name: Release
+
+env:
+  IMAGE_NAME: activemq-artemis-operator
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install prerequisites
+        run: sudo apt-get install pass
+
+      - name: Checkout the repo
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18.x
+
+      - name: Check doc.crds.dev
+        run: for i in {1..30}; do curl "https://doc.crds.dev/github.com/${{ github.repository }}@${{ github.ref_name }}" | grep 'ActiveMQArtemis' && break; sleep 1; done
+
+      - name: Checkout artemiscloud.github.io
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository_owner }}/artemiscloud.github.io
+          path: artemiscloud.github.io
+          token: ${{ secrets.BOT_TOKEN }}
+
+      - name: Build the docs
+        run: >
+          rm -rf artemiscloud.github.io/content/en/docs &&
+          cp -r docs artemiscloud.github.io/content/en &&
+          cd artemiscloud.github.io &&
+          npm install && npm run build
+
+      - name: Push the docs
+        run: >
+          cd artemiscloud.github.io &&
+          git config user.name 'ArtemisCloud Bot' &&
+          git config user.email 'artemiscloudbot@users.noreply.github.com' &&
+          git add --all && git commit --all --allow-empty --message 'Update docs to ${{ github.ref_name }}' && git push
+
+      - name: Build the image
+        run: docker build --tag $IMAGE_NAME:latest .
+
+      - name: Push the image
+        run: >
+          export IMAGE_TAG=${GITHUB_REF#refs/tags/v} &&
+          docker login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io &&
+          docker tag $IMAGE_NAME:latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:$IMAGE_TAG &&
+          docker push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:$IMAGE_TAG &&
+          docker tag $IMAGE_NAME:latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:latest &&
+          docker push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:latest
+
+      - name: Build the bundle image
+        run: export BUNDLE_IMG=$IMAGE_NAME-bundle:latest && make bundle-build
+
+      - name: Push the bundle image
+        run: >
+          export IMAGE_TAG=${GITHUB_REF#refs/tags/v} &&
+          docker login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io &&
+          docker tag $IMAGE_NAME-build:latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:$IMAGE_TAG &&
+          docker push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:$IMAGE_TAG &&
+          docker tag $IMAGE_NAME-build:latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:latest &&
+          docker push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:latest
