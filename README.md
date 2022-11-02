@@ -15,7 +15,8 @@ This example shows how you can use [Artemis][website] for messaging.
 * [Step 3: Check operator](#step-3-check-operator)
 * [Step 4: Create a Broker instance](#step-4-create-a-broker-instance)
 * [Step 5: Produce and check messages](#step-5-produce-and-check-messages)
-* [Step 6: Cleaning up](#step-6-cleaning-up)
+* [Step 6: Get console URL](#step-6-get-console-url)
+* [Step 7: Tidy up](#step-7-tidy-up)
 * [Summary](#summary)
 * [About this example](#about-this-example)
 
@@ -83,13 +84,13 @@ activemq-artemis-controller-manager-f8fb97ddd-bjrtv   1/1     Running   0       
 _**Console for hello-world:**_
 
 ~~~ shell
-kubectl create -f subrepos/operator/examples/artemis-basic-deployment.yaml
+kubectl create -f broker-with-console.yaml
 ~~~
 
 _Sample output:_
 
 ~~~ console
-$ kubectl create -f subrepos/operator/examples/artemis-basic-deployment.yaml
+$ kubectl create -f broker-with-console.yaml
 activemqartemis.broker.amq.io/ex-aao created
 ~~~
 
@@ -112,7 +113,23 @@ $ kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis queue stat --user x --passw
 Defaulted container ex-aao-container out of ex-aao-container, ex-aao-container-init (init)
 ~~~
 
-## Step 6: Cleaning up
+## Step 6: Get console URL
+
+_**Console for hello-world:**_
+
+~~~ shell
+kubectl get svc ex-aao-wconsj-0-svc
+read -n 1 -p "Navigate to IP address with the port 8161. Press return to continue" dummyinput
+~~~
+
+_Sample output:_
+
+~~~ console
+$ kubectl get svc ex-aao-wconsj-0-svc
+ex-aao-wconsj-0-svc   ClusterIP   10.100.215.107   <none>        8161/TCP   10m
+~~~
+
+## Step 7: Tidy up
 
 _**Console for hello-world:**_
 
@@ -122,7 +139,7 @@ kubectl delete namespaces hello-world
 
 ## Summary
 
-This example shows how to set up the Artemis operator.
+This example shows how to set up the Artemis operator, with a console and exposing metrics.
 
 ## Next steps
 

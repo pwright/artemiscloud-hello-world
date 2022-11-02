@@ -33,20 +33,27 @@ steps:
   - title: Create a Broker instance
     commands:
       hello-world:
-        - run: kubectl create -f subrepos/operator/examples/artemis-basic-deployment.yaml
+        - run: kubectl create -f broker-with-console.yaml
           output: activemqartemis.broker.amq.io/ex-aao created
-        - run: sleep 50
+        - run: sleep 90
           apply: test
   - title: Produce and check messages
     commands:
       hello-world:
+        - run: read -n 1 -p "temp" temp
         - run:  kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis producer --user x --password y --url tcp://ex-aao-ss-0:61616 --message-count=100
           output: Defaulted container ex-aao-container out of ex-aao-container, ex-aao-container-init (init)
         - run:  kubectl exec ex-aao-ss-0 -- amq-broker/bin/artemis queue stat --user x --password y --url tcp://ex-aao-ss-0:61616
           output: Defaulted container ex-aao-container out of ex-aao-container, ex-aao-container-init (init)
+  - title: Get console URL
+    commands:
+      hello-world:
+        - run:  kubectl get svc ex-aao-wconsj-0-svc
+          output: ex-aao-wconsj-0-svc   ClusterIP   10.100.215.107   <none>        8161/TCP   10m
+        - run: read -n 1 -p "Navigate to IP address with the port 8161. Press return to continue" dummyinput
   - title: Tidy up
     commands:
       hello-world:
         - run: kubectl delete namespaces hello-world
 summary: |
-  This example shows how to set up the Artemis operator.
+  This example shows how to set up the Artemis operator, with a console and exposing metrics.

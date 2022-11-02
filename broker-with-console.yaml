@@ -1,0 +1,16 @@
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: ex-aao
+spec:
+  deploymentPlan:
+    size: 1
+    image: placeholder
+    enableMetricsPlugin: true
+  env:
+    - name: JDK_JAVA_OPTIONS
+      value: -XshowSettings:system
+  console:
+    expose: true
+    sslEnabled: false
+  
